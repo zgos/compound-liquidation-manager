@@ -91,4 +91,32 @@ contract LiquidityManagement {
 
         emit AmountWithdrawn(cToken, amount);
     }
+
+    function isLiquidityNegative() public view returns (bool) {
+        (, , uint256 shortfall) = IComptroller(comptrollerAddress)
+            .getAccountLiquidity(msg.sender);
+        if (shortfall > 0) return true;
+
+        return false;
+    }
+
+    //amount in underlying asset terms
+    function repayBorrowedAsset(address cToken, uint256 amount) public {
+        address underlyingToken = ICToken(cToken).underlying();
+        require(
+            balance[msg.sender][underlyingToken] >= amount,
+            "Insufficient deposit"
+        );
+
+        balance[msg.sender][underlyingToken] = balance[msg
+            .sender][underlyingToken]
+            .sub(amount);
+
+        //approve
+        IERC20(underlyingToken).approve(cToken, amount);
+        require(
+            ICToken(cToken).repayBorrowBehalf(msg.sender, amount) == 0,
+            "Error in repay"
+        );
+    }
 }
