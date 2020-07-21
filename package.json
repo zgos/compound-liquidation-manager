@@ -11,5 +11,15 @@
     "url": "https://gitlab.com/deqode/reactjs/perlin-test-task.git"
   },
   "author": "Sumit Rajput",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@openzeppelin/contracts": "^2.5.1"
+  },
+  "devDependencies": {
+    "@openzeppelin/test-helpers": "^0.5.6",
+    "chai": "^4.2.0",
+    "eth-gas-reporter": "^0.2.17",
+    "ganache-cli": "^6.9.1",
+    "solidity-coverage": "^0.7.9"
+  }
 }
