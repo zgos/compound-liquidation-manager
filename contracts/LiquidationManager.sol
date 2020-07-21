@@ -142,19 +142,24 @@ contract LiquidityManagement is Ownable {
         address collateral,
         address borrowedAsset,
         uint256 amount
-    ) public {
+    ) public returns (uint256 collateralSeized) {
         address underlyingAsset = ICToken(borrowedAsset).underlying();
         require(
             balance[msg.sender][underlyingAsset] >= amount,
             "Insufficient deposit"
         );
 
+        uint256 collateralInitialbalance = IERC20(collateral).balanceOf(
+            address(this)
+        );
         balance[msg.sender][underlyingAsset] = balance[msg
             .sender][underlyingAsset]
             .sub(amount);
 
         //approve
         IERC20(underlyingAsset).approve(borrowedAsset, amount);
+
+        //liquidate
         require(
             ICToken(borrowedAsset).liquidateBorrow(
                 borrower,
@@ -163,5 +168,13 @@ contract LiquidityManagement is Ownable {
             ) == 0,
             "Error in repay"
         );
+
+        //transfer seized collateral to liquidator
+        uint256 collateralFinalbalance = IERC20(collateral).balanceOf(
+            address(this)
+        );
+        collateralSeized = collateralFinalbalance.sub(collateralInitialbalance);
+
+        IERC20(collateral).transfer(msg.sender, collateralSeized);
     }
 }
