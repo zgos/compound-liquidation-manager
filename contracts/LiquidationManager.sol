@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "./interfaces/IComptroller.sol";
 import "./interfaces/ICToken.sol";
+import "./interfaces/ICEther.sol";
 
 contract LiquidityManagement is Ownable {
     using SafeERC20 for IERC20;
@@ -171,7 +172,6 @@ contract LiquidityManagement is Ownable {
         emit AmountRepaid(borrower, msg.sender, repayAmount);
     }
 
-    //amount in underlying asset terms
     function liquidate(
         address borrower,
         address collateral,
@@ -191,6 +191,53 @@ contract LiquidityManagement is Ownable {
             .sender][underlyingAsset]
             .sub(amount);
 
+        //liquidate
+        if (underlyingAsset == ETHAddress) {
+            _liquidateETH(borrowedAsset, borrower, collateral, amount);
+        } else {
+            _liquidateERC(
+                borrowedAsset,
+                underlyingAsset,
+                borrower,
+                collateral,
+                amount
+            );
+        }
+
+        //transfer seized collateral to liquidator
+        collateralSeized = _transferSeizedCollateral(
+            collateral,
+            collateralInitialbalance
+        );
+
+        emit AccountLiquidated(
+            borrower,
+            msg.sender,
+            collateral,
+            collateralSeized
+        );
+    }
+
+    function _liquidateETH(
+        address borrowedAsset,
+        address borrower,
+        address collateral,
+        uint256 amount
+    ) internal {
+        //liquidate
+        ICEther(borrowedAsset).liquidateBorrow.value(amount)(
+            borrower,
+            collateral
+        );
+    }
+
+    function _liquidateERC(
+        address borrowedAsset,
+        address underlyingAsset,
+        address borrower,
+        address collateral,
+        uint256 amount
+    ) internal {
         //approve
         IERC20(underlyingAsset).approve(borrowedAsset, amount);
 
@@ -203,20 +250,17 @@ contract LiquidityManagement is Ownable {
             ) == 0,
             "Error in repay"
         );
+    }
 
-        //transfer seized collateral to liquidator
+    function _transferSeizedCollateral(
+        address collateral,
+        uint256 collateralInitialbalance
+    ) internal returns (uint256 collateralSeized) {
         uint256 collateralFinalbalance = IERC20(collateral).balanceOf(
             address(this)
         );
         collateralSeized = collateralFinalbalance.sub(collateralInitialbalance);
 
         IERC20(collateral).transfer(msg.sender, collateralSeized);
-
-        emit AccountLiquidated(
-            borrower,
-            msg.sender,
-            collateral,
-            collateralSeized
-        );
     }
 }
