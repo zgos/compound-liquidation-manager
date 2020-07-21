@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import "./interfaces/IComptroller.sol";
 import "./interfaces/ICToken.sol";
 
-contract LiquidityManagement {
+contract LiquidityManagement is Ownable{
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -23,7 +23,7 @@ contract LiquidityManagement {
     event AmountDeposited(address token, uint256 amount);
     event AmountWithdrawn(address token, uint256 amount);
 
-    function updateComptrollerAddress(address _comptrollerAddress) public {
+    function updateComptrollerAddress(address _comptrollerAddress) public onlyOwner {
         require(
             comptrollerAddress != address(0),
             "Invalid comptroller address"
