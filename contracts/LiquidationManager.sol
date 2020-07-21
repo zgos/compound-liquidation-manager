@@ -153,23 +153,49 @@ contract LiquidityManagement is Ownable {
             .sender][underlyingToken]
             .sub(repayAmount);
 
-        //approve
-        IERC20(underlyingToken).approve(cToken, repayAmount);
-
         //repay
         if (borrower == msg.sender) {
+            _repayBorrow(underlyingToken, cToken, repayAmount);
+        } else {
+            _repayBorrowBehalf(underlyingToken, borrower, cToken, repayAmount);
+        }
+
+        emit AmountRepaid(borrower, msg.sender, repayAmount);
+    }
+
+    function _repayBorrow(
+        address underlyingToken,
+        address cToken,
+        uint256 repayAmount
+    ) internal {
+        if (underlyingToken == ETHAddress) {
+            ICEther(cToken).repayBorrow.value(repayAmount)();
+        } else {
+            //approve
+            IERC20(underlyingToken).approve(cToken, repayAmount);
             require(
                 ICToken(cToken).repayBorrow(repayAmount) == 0,
                 "Error in repay"
             );
+        }
+    }
+
+    function _repayBorrowBehalf(
+        address underlyingToken,
+        address borrower,
+        address cToken,
+        uint256 repayAmount
+    ) internal {
+        if (underlyingToken == ETHAddress) {
+            ICEther(cToken).repayBorrowBehalf.value(repayAmount)(borrower);
         } else {
+            //approve
+            IERC20(underlyingToken).approve(cToken, repayAmount);
             require(
                 ICToken(cToken).repayBorrowBehalf(borrower, repayAmount) == 0,
                 "Error in repay"
             );
         }
-
-        emit AmountRepaid(borrower, msg.sender, repayAmount);
     }
 
     function liquidate(
