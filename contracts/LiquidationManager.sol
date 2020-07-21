@@ -18,7 +18,7 @@ contract LiquidityManagement {
         0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B
     );
 
-    mapping(address => mapping(address => uint256)) public balance; //user addr -> token address -> token deposited
+    mapping(address => mapping(address => uint256)) public balance;
 
     event AmountDeposited(address token, uint256 amount);
     event AmountWithdrawn(address token, uint256 amount);
@@ -31,13 +31,64 @@ contract LiquidityManagement {
         comptrollerAddress = _comptrollerAddress;
     }
 
-    function deposit(address token, uint256 amount) public {}
+    function deposit(address token, uint256 amount) public {
+        require(token != address(0), "Invalid Token address");
+        require(amount > 0, "Invalid token amount");
 
-    function withdraw(address token, uint256 amount) public {}
+        uint256 allowance = IERC20(token).allowance(address(this), msg.sender);
+        require(allowance >= amount, "Tokens not approved");
+
+        balance[msg.sender][token] = balance[msg.sender][token].add(amount);
+
+        IERC20(token).transferFrom(msg.sender, address(this), amount);
+
+        emit AmountDeposited(token, amount);
+    }
+
+    function withdraw(address token, uint256 amount) public {
+        require(token != address(0), "Invalid Token address");
+        require(amount > 0, "Invalid token amount");
+
+        require(
+            balance[msg.sender][token] >= amount,
+            "Invalid withdrawal amount"
+        );
+
+        balance[msg.sender][token] = balance[msg.sender][token].sub(amount);
+
+        IERC20(token).transfer(msg.sender, amount);
+
+        emit AmountWithdrawn(token, amount);
+    }
 
     function withdrawCTokens(
         address token,
         address cToken,
         uint256 amount
-    ) public returns (uint256 tokensMinted) {}
+    ) public returns (uint256 tokensMinted) {
+        require(token != address(0), "Invalid Token address");
+        require(amount > 0, "Invalid token amount");
+
+        require(
+            balance[msg.sender][token] >= amount,
+            "Invalid withdrawal amount"
+        );
+        balance[msg.sender][token] = balance[msg.sender][token].sub(amount);
+
+        //approve
+        IERC20(token).approve(cToken, amount);
+
+        uint256 initialCTokenBalance = IERC20(cToken).balanceOf(address(this));
+
+        //mint cToken
+        require(ICToken(cToken).mint(amount) == 0, "Error in redeeming tokens");
+
+        tokensMinted = IERC20(cToken).balanceOf(address(this)).sub(
+            initialCTokenBalance
+        );
+
+        IERC20(cToken).transfer(msg.sender, tokensMinted);
+
+        emit AmountWithdrawn(cToken, amount);
+    }
 }
