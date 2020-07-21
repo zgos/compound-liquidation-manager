@@ -119,4 +119,33 @@ contract LiquidityManagement {
             "Error in repay"
         );
     }
+
+		//amount in underlying asset terms
+    function liquidate(
+        address borrower,
+        address collateral,
+        address borrowedAsset,
+        uint256 amount
+    ) public {
+        address underlyingAsset = ICToken(borrowedAsset).underlying();
+        require(
+            balance[msg.sender][underlyingAsset] >= amount,
+            "Insufficient deposit"
+        );
+
+        balance[msg.sender][underlyingAsset] = balance[msg
+            .sender][underlyingAsset]
+            .sub(amount);
+
+        //approve
+        IERC20(underlyingAsset).approve(borrowedAsset, amount);
+        require(
+            ICToken(borrowedAsset).liquidateBorrow(
+                borrower,
+                amount,
+                collateral
+            ) == 0,
+            "Error in repay"
+        );
+    }
 }
