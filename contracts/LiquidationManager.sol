@@ -22,6 +22,13 @@ contract LiquidityManagement is Ownable {
 
     event AmountDeposited(address token, uint256 amount);
     event AmountWithdrawn(address token, uint256 amount);
+    event AccountLiquidated(
+        address borrower,
+        address liquidator,
+        address assetSeized,
+        uint256 amountSeized
+    );
+    event AmountRepaid(address borrower, address payer, uint256 amount);
 
     function updateComptrollerAddress(address _comptrollerAddress)
         public
@@ -134,6 +141,8 @@ contract LiquidityManagement is Ownable {
                 "Error in repay"
             );
         }
+
+        emit AmountRepaid(borrower, msg.sender, repayAmount);
     }
 
     //amount in underlying asset terms
@@ -176,5 +185,12 @@ contract LiquidityManagement is Ownable {
         collateralSeized = collateralFinalbalance.sub(collateralInitialbalance);
 
         IERC20(collateral).transfer(msg.sender, collateralSeized);
+
+        emit AccountLiquidated(
+            borrower,
+            msg.sender,
+            collateral,
+            collateralSeized
+        );
     }
 }
