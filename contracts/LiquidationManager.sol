@@ -18,6 +18,10 @@ contract LiquidityManagement is Ownable {
         0x3d9819210A31b4961b30EF54bE2aeD79B9c9Cd3B
     );
 
+    address private constant ETHAddress = address(
+        0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE
+    );
+
     mapping(address => mapping(address => uint256)) public balance;
 
     event AmountDeposited(address token, uint256 amount);
@@ -41,9 +45,14 @@ contract LiquidityManagement is Ownable {
         comptrollerAddress = _comptrollerAddress;
     }
 
-    function deposit(address token, uint256 amount) public {
+    function deposit(address token, uint256 amount) public payable {
         require(token != address(0), "Invalid Token address");
         require(amount > 0, "Invalid token amount");
+
+        if (token == ETHAddress) {
+            require(msg.value == amount, "Incorrect ETH amount");
+            return _depositETH(msg.value);
+        }
 
         uint256 allowance = IERC20(token).allowance(address(this), msg.sender);
         require(allowance >= amount, "Tokens not approved");
@@ -53,6 +62,13 @@ contract LiquidityManagement is Ownable {
         IERC20(token).transferFrom(msg.sender, address(this), amount);
 
         emit AmountDeposited(token, amount);
+    }
+
+    function _depositETH(uint256 amount) internal {
+        balance[msg.sender][ETHAddress] = balance[msg.sender][ETHAddress].add(
+            amount
+        );
+        emit AmountDeposited(ETHAddress, amount);
     }
 
     function withdraw(address token, uint256 amount) public {
@@ -66,7 +82,11 @@ contract LiquidityManagement is Ownable {
 
         balance[msg.sender][token] = balance[msg.sender][token].sub(amount);
 
-        IERC20(token).transfer(msg.sender, amount);
+        if (token == ETHAddress) {
+            msg.sender.transfer(amount);
+        } else {
+            IERC20(token).transfer(msg.sender, amount);
+        }
 
         emit AmountWithdrawn(token, amount);
     }
@@ -85,13 +105,19 @@ contract LiquidityManagement is Ownable {
         );
         balance[msg.sender][token] = balance[msg.sender][token].sub(amount);
 
-        //approve
-        IERC20(token).approve(cToken, amount);
-
         uint256 initialCTokenBalance = IERC20(cToken).balanceOf(address(this));
 
         //mint cToken
-        require(ICToken(cToken).mint(amount) == 0, "Error in redeeming tokens");
+        if (token == ETHAddress) {
+            ICEther(cToken).mint.value(amount)();
+        } else {
+            //approve
+            IERC20(token).approve(cToken, amount);
+            require(
+                ICToken(cToken).mint(amount) == 0,
+                "Error in redeeming tokens"
+            );
+        }
 
         tokensMinted = IERC20(cToken).balanceOf(address(this)).sub(
             initialCTokenBalance
