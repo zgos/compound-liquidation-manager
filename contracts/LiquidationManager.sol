@@ -2,15 +2,15 @@ pragma solidity 0.5.12;
 
 import "@openzeppelin/contracts/utils/Address.sol";
 import "@openzeppelin/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import "@openzeppelin/contracts/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
 import "./interfaces/IComptroller.sol";
 import "./interfaces/ICToken.sol";
 
-contract LiquidityManagement is Ownable{
+contract LiquidityManagement is Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -23,7 +23,10 @@ contract LiquidityManagement is Ownable{
     event AmountDeposited(address token, uint256 amount);
     event AmountWithdrawn(address token, uint256 amount);
 
-    function updateComptrollerAddress(address _comptrollerAddress) public onlyOwner {
+    function updateComptrollerAddress(address _comptrollerAddress)
+        public
+        onlyOwner
+    {
         require(
             comptrollerAddress != address(0),
             "Invalid comptroller address"
@@ -101,26 +104,39 @@ contract LiquidityManagement is Ownable{
     }
 
     //amount in underlying asset terms
-    function repayBorrowedAsset(address cToken, uint256 amount) public {
+    function repayBorrowedAsset(
+        address borrower,
+        address cToken,
+        uint256 repayAmount
+    ) public {
         address underlyingToken = ICToken(cToken).underlying();
         require(
-            balance[msg.sender][underlyingToken] >= amount,
+            balance[msg.sender][underlyingToken] >= repayAmount,
             "Insufficient deposit"
         );
 
         balance[msg.sender][underlyingToken] = balance[msg
             .sender][underlyingToken]
-            .sub(amount);
+            .sub(repayAmount);
 
         //approve
-        IERC20(underlyingToken).approve(cToken, amount);
-        require(
-            ICToken(cToken).repayBorrowBehalf(msg.sender, amount) == 0,
-            "Error in repay"
-        );
+        IERC20(underlyingToken).approve(cToken, repayAmount);
+
+        //repay
+        if (borrower == msg.sender) {
+            require(
+                ICToken(cToken).repayBorrow(repayAmount) == 0,
+                "Error in repay"
+            );
+        } else {
+            require(
+                ICToken(cToken).repayBorrowBehalf(borrower, repayAmount) == 0,
+                "Error in repay"
+            );
+        }
     }
 
-		//amount in underlying asset terms
+    //amount in underlying asset terms
     function liquidate(
         address borrower,
         address collateral,
