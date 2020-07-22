@@ -11,7 +11,7 @@ import "./interfaces/IComptroller.sol";
 import "./interfaces/ICToken.sol";
 import "./interfaces/ICEther.sol";
 
-contract LiquidityManagement is Ownable {
+contract LiquidatorManager is Ownable {
     using SafeERC20 for IERC20;
     using SafeMath for uint256;
 
@@ -40,7 +40,7 @@ contract LiquidityManagement is Ownable {
         onlyOwner
     {
         require(
-            comptrollerAddress != address(0),
+            _comptrollerAddress != address(0),
             "Invalid comptroller address"
         );
         comptrollerAddress = _comptrollerAddress;
@@ -55,10 +55,10 @@ contract LiquidityManagement is Ownable {
             return _depositETH(msg.value);
         }
 
-        uint256 allowance = IERC20(token).allowance(address(this), msg.sender);
+        uint256 allowance = IERC20(token).allowance(msg.sender, address(this));
         require(allowance >= amount, "Tokens not approved");
 
-        balance[msg.sender][token] = balance[msg.sender][token].add(amount);
+        balance[msg.sender][token] = (balance[msg.sender][token]).add(amount);
 
         IERC20(token).transferFrom(msg.sender, address(this), amount);
 
