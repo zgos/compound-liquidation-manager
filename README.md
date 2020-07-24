@@ -22,6 +22,21 @@ The contract can be improved to get the rewards accumulated by the user on liqui
 
 The contract coverage can also be improved to get potential vulnerabilities.
 
+---
+### User Interface
+
+Created a Single Page Application which interacts with Liquidator Manager contract which can be used to:
+1. Deposit Tokens
+2. Withdraw Tokens
+3. View deposited balance of the user
+
+It is developed using React, Users can connect their Metamask wallet and deposit or withdraw their assets.
+
+The UI Interact with Liquidator Manager contract to deposit or withdraw user assets.
+
+The UI can be improved by  adding support with different crypto wallets.
+
+---
 ### Backend Service
 
 I was not able to work on the backend service due to a shortage of time. But here I'm describing how it would work
