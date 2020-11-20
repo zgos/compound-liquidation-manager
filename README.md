@@ -1,4 +1,4 @@
-# Perlin Test Task
+# Test Task
 
 
 ## Solution
