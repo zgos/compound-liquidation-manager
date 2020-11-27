@@ -20,7 +20,7 @@ The contract tests use open zeppelin testing environment and truffle suite for c
 
 The contract can be improved to get the rewards accumulated by the user on liquidity provided and redeem it.
 
-The contract coverage can also be improved to get potential vulnerabilities.
+The contract coverage can also be improved.
 
 ---
 ### User Interface
